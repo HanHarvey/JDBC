@@ -1,7 +1,11 @@
 package jdbc.ah;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Iterator;
 import java.util.Scanner;
+
 /**
  * CECS 323 Opkins
  * JDBC Project
@@ -48,6 +52,7 @@ public class JDBCAH {
     public static ResultSet performWhereQuery(String tableColumns, String tableName, String whereClauseColumn, String whereClauseValue, 
             Connection conn, PreparedStatement preStmt) {
         String query = "SELECT " + tableColumns + " FROM " + tableName + " WHERE " + whereClauseColumn + " = ?";
+        System.out.println(query);
         ResultSet results = null;
         
         try {
@@ -60,8 +65,38 @@ public class JDBCAH {
         return results;
     }
     
+    public static void listall(String category, String tableColumns, Connection conn, Statement stmt) throws SQLException
+    {
+        List<String> list = new ArrayList<String>(Arrays.asList(tableColumns.split(",")));
+        
+        
+        ResultSet rs = performQuery(tableColumns,category,conn,stmt);
+        
+        while(rs.next())
+        {
+            ArrayList<String> values = new ArrayList<String>();
+            
+            for(String next : list)
+            {
+               String tmp = rs.getString(next);
+               values.add(tmp);
+            }
+
+            for(int j = 0; j < values.size(); j++)
+            {
+                System.out.println( list.get(j) + ": "+ dispNull(values.get(j)));
+            }
+        }
+    }
+    
+    public static void listalldata(String category, String tableColumns, Connection conn, Statement stmt) throws SQLException
+    {
+        
+    }
+    
     /* handles user input within a given max range*/
-    public static String getInputWithinRange(String prompt, Scanner reader, int max) {
+    public static String getInputWithinRange(String prompt, Scanner reader, int max) 
+    {
         boolean inputIsInvalid = true;
         String input = "";
         
@@ -99,6 +134,7 @@ public class JDBCAH {
         }    
         return userNumChoice;
     } 
+    
     /* handles user input within a given min - max length range*/
     public static String getInputWithinLengthRange(String prompt, Scanner reader, int rangeMin, int rangeMax) {
         boolean inputIsInvalid = true;
@@ -121,6 +157,7 @@ public class JDBCAH {
         }    
         return userNumChoice;
     } 
+  
 
     public static void main(String[] args) {
         //Prompt the user for the database name, and the credentials.
@@ -167,41 +204,21 @@ public class JDBCAH {
                     + "9. Remove a Book\n");   
                 
                 choice = getInputWithinRange("Enter a number from 0 - 9: ", reader, 0, 9);
-
-                switch(choice)
+                boolean run = true;
+                while(run)
                 {
                     //exits
-                    case 0:
-                    {
+                    if(choice == 0 ){
+                        run = false;
                         end = true;
-                        break;
                     }
-                    
                     //List all writing groups
-                    case 1:
-                    {
-                        ResultSet rs = performQuery("groupName, headWriter, yearFormed, subject", "writingGroup",conn,stmt);
-
-                        //STEP 5: Extract data from result set
-                        System.out.printf(displayFormat, "Group Name", "Head Writer", "Year Formed", "Subject");
-                        while (rs.next()) 
-                        {
-                            //Retrieve by column name
-                            String cGroupName = rs.getString("groupName");
-                            String cHeadWriter = rs.getString("headWriter");
-                            String cYearFormed = rs.getString("yearFormed");
-                            String cSubject = rs.getString("subject");
-
-                            //Display values
-                            System.out.printf(displayFormat,
-                                    dispNull(cGroupName), dispNull(cHeadWriter), 
-                                    dispNull(cYearFormed), dispNull(cSubject));
-                        }
-                        break;
+                    else if(choice == 1){
+                         listall("writingGroup","groupName,headWriter,yearFormed,subject",conn,stmt);
+                         run = false;
                     }
-                    
                     //list all data of a group (User's input required)
-                    case 2:
+                    else if(choice == 2)
                     {
                         System.out.print("Please enter a group name you want shown: ");
                         String gn = reader.nextLine();
@@ -247,38 +264,17 @@ public class JDBCAH {
                             System.out.printf(bookDisplayFormat, dispNull(bookTitle), dispNull(groupName), dispNull(publisherName), 
                                     dispNull(yearPublished), dispNull(numberPages));
                         }
-                        break;
                     }
                     //List all publishers
-                    case 3:
+                    else if(choice == 3)
                     {
                         stmt = conn.createStatement();
                         String sql;
-                        sql = "SELECT pubName, pubAddress, pubPhone, pubEmail FROM publishers";
-                        ResultSet rs = stmt.executeQuery(sql);
-                        // display format changed to ensure alignment for columns
-                        String publisherDisplayFormat = displayFormat;
-                        publisherDisplayFormat = publisherDisplayFormat.replaceAll("30", "35");
-
-                        //STEP 5: Extract data from result set
-                        System.out.printf(publisherDisplayFormat, "Publisher Name", "Publisher Address", 
-                                    "Publisher Phone", "Publisher Email");
-                        while (rs.next()) {
-                            //Retrieve by column name
-                            String cPublisherName = rs.getString("pubName");
-                            String cPublisherAddress = rs.getString("pubAddress");
-                            String cPublisherPhone = rs.getString("pubPhone");
-                            String cPublisherEmail = rs.getString("pubEmail");
-
-                                //Display values
-                            System.out.printf(publisherDisplayFormat,
-                                    dispNull(cPublisherName), dispNull(cPublisherAddress), 
-                                    dispNull(cPublisherPhone), dispNull(cPublisherEmail));
-                        }
-                        break;
+                        listall("publishers","pubName,pubAddress,pubPhone,pubEmail",conn,stmt);
                     }
-                    //List all data of a Publisher (user's input required)
-                    case 4:{
+                    
+                    else if(choice == 4)
+                    {
                         System.out.print("Enter a publisher name: ");
                         String publisher = reader.nextLine();
                         ResultSet rs = performWhereQuery("pubName,pubAddress, pubPhone, pubEmail", "publishers",
@@ -324,30 +320,17 @@ public class JDBCAH {
                                     dispNull(yearPublished), dispNull(numberPages));
                         }
 
-                        break;
                     }
-                    //List all book titles (Titles Only)
-                    case 5:{
-                        int numBook = 1;
-                        
+                    //List all data of a Publisher (user's input required)
+                    else if(choice == 5)
+                    {
                         stmt = conn.createStatement();
                         String sql;
-                        sql = "SELECT bookTitle FROM book";
-                        ResultSet rs = stmt.executeQuery(sql);
-                        //STEP 5: Extract data from result set
-                        System.out.println("Book Titles");
-                        while (rs.next()) {
-                            //Retrieve by column name
-                            String cBookTitle = rs.getString("bookTitle");
-
-                                //Display values
-                            System.out.println(numBook + ") " + dispNull(cBookTitle));
-                            numBook++;
-                        }
-                        break;
+                        listall("book","bookTitle",conn,stmt);
                     }
                     //List all data of a book (user input required)
-                    case 6:{
+                    else if(choice == 6)
+                    {
                         System.out.print("Enter a book title: ");
                         String bookTitle = reader.nextLine();
                         
@@ -386,10 +369,10 @@ public class JDBCAH {
                                     dispNull(bYearFormed), dispNull(bSubject), dispNull(bPublisherAddress), 
                                     dispNull(bPublisherPhone), dispNull(bPublisherEmail));
                         }
-                        break;
                     }
                     //Insert a new Book
-                    case 7:{
+                    else if(choice == 7)
+                    {
                         String bookTitle = getInputWithinRange("Please input the new Book Title: ",  reader, 60);
                         String yearPublished = getInputWithinRange("Please input the new Book year of publish: ", reader, 4);
                         System.out.print("Please input the new Book number of pages: ");
@@ -458,13 +441,13 @@ public class JDBCAH {
                             System.out.println(bookNumbering + ") " + dispNull(cBookTitle));
                             bookNumbering++;
                         }
-                        break;
                     }
                     //Insert a new Publisher (followed by a replacing of an old Publisher)
-                    case 8:{
+                    else if(choice == 8)
+                    {
                         String newPublisher = getInputWithinRange("Enter in a new Publisher: ", reader, 60);
                         String newPublisherAddress = getInputWithinRange("Enter the new Publisher's address: ", reader, 80);
-                        String newPublisherPhone = getInputWithinLengthRange("Enter the new Publisher's phone number: ", reader, 10, 12) ;
+                        String newPublisherPhone = getInputWithinLengthRange("Enter the new Publisher's phone number: ", reader, 10,12);
                         String newPublisherEmail = getInputWithinRange("Enter the new Publisher's email: ", reader, 80);
                         
                         //asks to see the what the publisher should be replaced
@@ -513,7 +496,7 @@ public class JDBCAH {
                         ResultSet bookSet = performQuery("bookTitle, groupName, pubName, yearPublished, numberPages", "book", conn, stmt);
                         System.out.printf("%-40s%-40s\n", "Book Title", "Publisher Name");
                         while (bookSet.next()) {
-                            System.out.printf("%-40s%-40s\n", dispNull(bookSet.getString("BookTitle")), dispNull(bookSet.getString("PublisherName")) );
+                            System.out.printf("%-40s%-40s\n", dispNull(bookSet.getString("bookTitle")), dispNull(bookSet.getString("pubName")) );
                         }
                         
                         System.out.println("\n");
@@ -536,10 +519,9 @@ public class JDBCAH {
                                     dispNull(cPublisherName), dispNull(cPublisherAddress), 
                                     dispNull(cPublisherPhone), dispNull(cPublisherEmail));
                         }
-                        break;
                     }
-                    //remove a book
-                    case 9:{
+                    else if(choice == 9)
+                    {
                         System.out.println("All books:\n");
                         ArrayList<String> bookName = new ArrayList<String>();
                         ResultSet rs = performQuery("bookTitle", "book", conn, stmt);
@@ -573,11 +555,10 @@ public class JDBCAH {
                             System.out.println(bookNumList + ") " + dispNull(cBookTitle));
                             bookNumList++;
                         }
-                        break;
                     }
-                    default: {
-                        System.out.print("That is not an available option.");
-                        break;
+                    else
+                    {
+                       System.out.print("That is not an available option."); 
                     }
                 };
                 
